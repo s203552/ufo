@@ -1,0 +1,44 @@
+Si consideri il data-set "ufo_sightings" che riporta una serie di avvistamenti di presunti UFO tra il 1906 ed il 2014.
+
+Costruire un'applicazione JavaFX che permetta ad un utente di interrogare tali avvistamenti e di compiere delle analisi alla ricerca di .
+
+In particolare, l'utente può selezionare, da un menu a tendina, la forma dell'UFO (campo 'shape' del data-set). Si trattino il valore "unknown" ed il valore mancante/vuoto come sinonimi.
+
+Una volta selezionata la forma, il programma deve analizzare i dati e stampare le frequenze degli avvistamenti, dividendoli nelle fasce orarie della giornata, a gruppi di 6 ore (cioè tra le 00:00 e le 05:59, tra le 06:00 e le 11:59, ecc.).
+(purché contenga almeno 2 avvistamenti)
+
+Si permetta all'utente di selezionare due dati:
+- una fascia oraria (purché contenga almeno 2 avvistamenti) tra quelle sopra definite
+- una distanza D espressa in kilometri
+
+Si costruisca quindi un grafo, i cui vertici siano gli avvistamenti (compatibili con la forma e la fascia oraria selezionate), ed i cui archi rappresentino il fatto che i due avvistamenti siano avvenuti ad una distanza inferiore o uguale a D.
+
+In caso di avvistamenti "vicini", si pesi l'arco con la differenza (espressa in giorni) tra le due date di avvistamento.
+
+La costruzione del grafo deve essere ripetibile a piacere, variando la fascia oraria ed il valore di D.
+
+Una volta costruito il grafo, si determini:
+- quante sono le componenti connesse del grafo
+- quanti vertici ha la componente connessa più grande
+- quali sono le 5 coppie di avvistamenti, appartenenti alla componente connessa più grande, avvenuti con intervalli di tempo più ravvicinati (ossia trovare i 5 archi di peso minimo). 
+
+Data-set scaricabile da:
+https://baltea.polito.it/owncloud/index.php/s/aHvBU5Xc8exLh6m 
+
+
+
+
+SELECT DISTINCT shape FROM sighting
+“” = 1930
+unknown= 5584
+
+/**
+ * lista degli avvistamenti connessi
+*/
+public List<Set<Sighting>> getConn(){
+	if(graph == null) throw new RuntimeException("grafo non esiste");		
+	ConnectivityInspector<Sighting ,DefaultWeightedEdge> ci =
+						new ConnectivityInspector<>(graph);
+		return ci.connectedSets();
+	}
+
