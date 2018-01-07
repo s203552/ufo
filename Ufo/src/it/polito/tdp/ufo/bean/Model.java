@@ -149,15 +149,18 @@ public class Model {
  
 public String  get5ArchiMinWeight (){
 	
-      //SortedSet?
   	  String s="";
 	  int id= this.getNumberConn();	  	  
-	  Sighting a1 = ListSighting.get(id);	   
 	  List <DefaultWeightedEdge> edge= new  ArrayList<>();
 	  
-	  for (Sighting a2: Graphs.neighborListOf(graph , a1)){
-		  if (! a1.equals(a2)){  	
+	  // avevo pensato di sostituire i vertici del grafo con il set trovato Max connesso per poi richiamare il metodo CreaGrafo()
+	 Set<Sighting> new_vertex =this.MAXconnesso(id);
+	 for (Sighting a1: new_vertex){
+	  for (Sighting a2: new_vertex){
+		  if (! a1.equals(a2)){ 
+			  //devo trovare 5 archi
 		   if( edge.size()<5){
+			   //peso
 			Integer peso= (a1.getDatetime().getYear()*365+a1.getDatetime().getDayOfYear())-(a2.getDatetime().getYear()*365+a2.getDatetime().getDayOfYear());
 			   DefaultWeightedEdge e=graph.addEdge(a1, a2);
 				if(e!=null)
@@ -167,7 +170,8 @@ public String  get5ArchiMinWeight (){
 					s += a1+" "+a2+" "+peso+"\n";
 		    }			
 		   }	 
-	  }	  
+	  }	
+	 }	
 	  return s;	
     }
 
