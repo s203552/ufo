@@ -1,8 +1,11 @@
 package it.polito.tdp.ufo.bean;
 
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.ConnectivityInspector;
+import org.jgrapht.alg.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import com.javadocmd.simplelatlng.LatLngTool;
@@ -18,10 +21,12 @@ public class Model {
 	private List<Sighting> ListSighting;	
 	private List<FasciaOraria> listFasceOrarie;
 	private DefaultDirectedWeightedGraph<Sighting, DefaultWeightedEdge> graph;
+	private ConnectivityInspector<Sighting , DefaultWeightedEdge>  ci;
 
 	public Model() {
 		
 		dao = new UfoDAO();
+		
 		if(listFasceOrarie==null) listFasceOrarie= new ArrayList<FasciaOraria>();
 		listFasceOrarie.add(new FasciaOraria (0,5));
 		listFasceOrarie.add(new FasciaOraria (6,11));
@@ -66,25 +71,20 @@ public class Model {
 			for (Sighting a2 : graph.vertexSet()) {		
 				if (a1 != null && a2 != null && !a1.equals(a2)) {				
 					//calcolo distanza con latlng	
-					double dist = LatLngTool.distance(a1.getCoords(), a2.getCoords(), LengthUnit.KILOMETER);				
-					//calcolo differenza giorni tra avvistamenti				
-					Integer diffyear= a1.getDatetime().getYear()-a2.getDatetime().getYear();
-					Integer diffday= a1.getDatetime().getDayOfYear()-a2.getDatetime().getDayOfYear();
-					Integer diff= diffyear*365+diffday;		
-					//oppure tutto in una operazione
-					Integer peso= (a1.getDatetime().getYear()*365+a1.getDatetime().getDayOfYear())-(a2.getDatetime().getYear()*365+a2.getDatetime().getDayOfYear());
+					double dist = LatLngTool.distance(a1.getCoords(), a2.getCoords(), LengthUnit.KILOMETER);
+					
+					//peso
+					Double p = (double) ChronoUnit.DAYS.between(a1.getDatetime(), a2.getDatetime());
+					
 					//se distanza input < distanza calcolata aggiungo archi				
-					if (d>=dist)
-					{
+					if (d>=dist)	{
 						DefaultWeightedEdge e=graph.addEdge(a1, a2);
 						if(e!=null)
-							graph.setEdgeWeight(e, peso);
-						//striga grafo 
-							s += e+" "+peso+"\n";
+							graph.setEdgeWeight(e, p);
+						//stringa grafo 
+							s += e+" "+p+"\n";
 						}		
-//						Graphs.addEdgeWithVertices(graph, a1, a2, peso);
-					
-					
+//						Graphs.addEdgeWithVertices(graph, a1, a2, peso);				
 				}
 			}
 		 }
@@ -103,73 +103,68 @@ public class Model {
 		  avvenuti con intervalli di tempo più ravvicinati (ossia trovare i 5 archi di peso minimo). 
 */	
 
-	
+    
 /*  avvistamenti sono connessi??  */	
 	public String isConnesso () {
-		if(graph == null)	throw new RuntimeException("grafo non esiste");		
-	    ConnectivityInspector<Sighting , DefaultWeightedEdge> conn = new ConnectivityInspector<>(this.graph);
-	    if (conn.isGraphConnected()){ return "Il grafo � fortemente connesso+\n";	 }
+		ci = new ConnectivityInspector<>(this.graph);
+	    if (ci.isGraphConnected()){ return "Il grafo � fortemente connesso+\n";	 }
 		else return "il grafo non � fortemente connesso+\n";
 	}
 	
-	
-/* numero degli avvistamenti connessi */
-	public int getNumberConn(){
-		if(graph == null)	throw new RuntimeException("grafo non esiste");		
-		ConnectivityInspector<Sighting ,DefaultWeightedEdge> ci =new ConnectivityInspector<>(graph);
-		int i=ci.connectedSets().size();
-		return i;
-	}
 		
 /* lista degli avvistamenti connessi */
 	public List<Set<Sighting>> getConn(){
-			if(graph == null) throw new RuntimeException("grafo non esiste");		
-			ConnectivityInspector<Sighting ,DefaultWeightedEdge> ci =new ConnectivityInspector<>(graph);
-			return ci.connectedSets();
-		}
+		ci = new ConnectivityInspector<>(this.graph);
+		return ci.connectedSets();
+	}
+	
+/* numero degli avvistamenti connessi */
+	public int getNumberConn(){
+		return this.getConn().size();
+	}
 
 /* trovo (max) degli avvistamenti connessi */
-	public Set<Sighting> MAXconnesso(int id) {
-		if(graph == null) throw new RuntimeException("grafo non esiste");		
-		ConnectivityInspector<Sighting, DefaultWeightedEdge> ci = new ConnectivityInspector<>(graph);
-		id= this.getNumberConn();
-		return ci.connectedSetOf(ListSighting.get(id));
-		
+	public Set<Sighting> MAXconnesso() {
+		Set<Sighting> MAX=null;
+		Double size=0.0;
+		for(Set<Sighting> atemp :this.getConn()){
+			 if(atemp.size()>size){
+				 size = (double) atemp.size();
+				 MAX=atemp;
+			 }	 
+		 }	 
+		return MAX;	
 	}
 /* trovo (max size) degli avvistamenti connessi */
-	public int MAXconnessioni(int id) {
-		if(graph == null) throw new RuntimeException("grafo non esiste");		
-		ConnectivityInspector<Sighting, DefaultWeightedEdge> ci = new ConnectivityInspector<>(graph);
-		id= this.getNumberConn();
-		return ci.connectedSetOf(ListSighting.get(id)).size();
-		
+	public int MAXconnessioni() {
+		return this.MAXconnesso().size();		
 	}
 		
 /* trovo 5 achi con peso minimo di (max size) */		//????		
  
 public String  get5ArchiMinWeight (){
-	
+
   	  String s="";
-	  int id= this.getNumberConn();	  	  
 	  List <DefaultWeightedEdge> edge= new  ArrayList<>();
 	  
 	  // avevo pensato di sostituire i vertici del grafo con il set trovato Max connesso per poi richiamare il metodo CreaGrafo()
-	 Set<Sighting> new_vertex =this.MAXconnesso(id);
+	 Set<Sighting> new_vertex =this.MAXconnesso();
 	 for (Sighting a1: new_vertex){
 	  for (Sighting a2: new_vertex){
-		  if (! a1.equals(a2)){ 
-			  //devo trovare 5 archi
-		   if( edge.size()<5){
-			   //peso
-			Integer peso= (a1.getDatetime().getYear()*365+a1.getDatetime().getDayOfYear())-(a2.getDatetime().getYear()*365+a2.getDatetime().getDayOfYear());
-			   DefaultWeightedEdge e=graph.addEdge(a1, a2);
-				if(e!=null)
-					graph.setEdgeWeight(e, peso);
-				edge.add( e);
-				//striga grafo 
-					s += a1+" "+a2+" "+peso+"\n";
-		    }			
-		   }	 
+		  if (! a1.equals(a2)&& a1!=null&&a2!=null){ 
+			  if(edge.size()<5){
+			//peso
+				Double p = (double) ChronoUnit.DAYS.between(a1.getDatetime(), a2.getDatetime());
+				DefaultWeightedEdge e=graph.getEdge(a1, a2);
+					if(e!=null){
+						graph.getEdgeWeight(e);
+						edge.add(e);
+				    //stringa grafo 
+						s += e+" "+graph.getEdgeWeight(e)+"\n";
+					}
+					
+			  }
+		  }
 	  }	
 	 }	
 	  return s;	
@@ -205,14 +200,14 @@ public String  get5ArchiMinWeight (){
 		System.out.println("------- Arco max connesso ----------");
 		System.out.println("\n");
 		
-		Set<Sighting> s=model.MAXconnesso(n);
+		Set<Sighting> s=model.MAXconnesso();
 		System.out.println(s);
 		
 		System.out.println("\n");
 		System.out.println("-------- n archi Arco max connesso ---------");
 		System.out.println("\n");
 		
-		int nc=model.MAXconnessioni(n);
+		int nc=model.MAXconnessioni();
 		System.out.println(nc);
 		
 		System.out.println("\n");
