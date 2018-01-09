@@ -142,32 +142,26 @@ public class Model {
 		
 /* trovo 5 achi con peso minimo di (max size) */		//????		
  
-public String  get5ArchiMinWeight (){
+public List<EdgePeso> get5ArchiMinWeight (){
 
-  	  String s="";
-	  List <DefaultWeightedEdge> edge= new  ArrayList<>();
-	  
+	  List<EdgePeso>  edgePeso= new  ArrayList<>();
 	  // avevo pensato di sostituire i vertici del grafo con il set trovato Max connesso per poi richiamare il metodo CreaGrafo()
 	 Set<Sighting> new_vertex =this.MAXconnesso();
 	 for (Sighting a1: new_vertex){
 	  for (Sighting a2: new_vertex){
 		  if (! a1.equals(a2)&& a1!=null&&a2!=null){ 
-			  if(edge.size()<5){
-			//peso
+			  //peso
 				Double p = (double) ChronoUnit.DAYS.between(a1.getDatetime(), a2.getDatetime());
 				DefaultWeightedEdge e=graph.getEdge(a1, a2);
-					if(e!=null){
+					if(e!=null ){
 						graph.getEdgeWeight(e);
-						edge.add(e);
-				    //stringa grafo 
-						s += e+" "+graph.getEdgeWeight(e)+"\n";
-					}
-					
-			  }
-		  }
+						edgePeso.add(new EdgePeso(e,p) );
+					}					
+			  }  
 	  }	
-	 }	
-	  return s;	
+	 } 
+	 Collections.sort(edgePeso);
+	 return edgePeso.subList(0, 5);
     }
 
 
@@ -214,7 +208,7 @@ public String  get5ArchiMinWeight (){
 		System.out.println("------- 5 Archi di max connesso ----------");
 		System.out.println("\n");
 
-		String e= model.get5ArchiMinWeight(); 
+		List<EdgePeso>e= model.get5ArchiMinWeight(); 
 		System.out.println(e);
 		
 	}
